@@ -30,21 +30,24 @@ export default function LoginPage() {
     return onAuthStateChanged(auth, async (currentUser) => {
       setErrorMessage("");
 
-      if (currentUser && !isMsuEmail(currentUser.email)) {
-        await signOut(auth);
-        setUser(null);
-        setErrorMessage(DOMAIN_ERROR);
+      try {
+        if (currentUser && !isMsuEmail(currentUser.email)) {
+          await signOut(auth);
+          setUser(null);
+          setErrorMessage(DOMAIN_ERROR);
+          return;
+        }
+
+        setUser(currentUser);
+
+        if (currentUser) {
+          await sendToProfileSetupIfNeeded(currentUser);
+        }
+      } catch (error) {
+        console.error("Auth session check error:", error);
+      } finally {
         setIsCheckingSession(false);
-        return;
       }
-
-      setUser(currentUser);
-
-      if (currentUser) {
-        await sendToProfileSetupIfNeeded(currentUser);
-      }
-
-      setIsCheckingSession(false);
     });
   }, [sendToProfileSetupIfNeeded]);
 
@@ -65,6 +68,7 @@ export default function LoginPage() {
       setUser(result.user);
       await sendToProfileSetupIfNeeded(result.user);
     } catch (error) {
+      console.error("Google Sign-In error:", error);
       if (
         typeof error === "object" &&
         error !== null &&
